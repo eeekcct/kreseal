@@ -12,24 +12,42 @@ import (
 )
 
 func NewSecret(data map[string][]byte, spec v1alpha1.SecretTemplateSpec) *corev1.Secret {
-	return &corev1.Secret{
+	secret := &corev1.Secret{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Secret"},
 		ObjectMeta: spec.ObjectMeta,
 		Type:       spec.Type,
 		Data:       data,
 	}
+	// Preserve Immutable field if set in template
+	if spec.Immutable != nil {
+		secret.Immutable = spec.Immutable
+	}
+	return secret
 }
 
 func NewSealedSecret(data map[string]string, secret *corev1.Secret) *v1alpha1.SealedSecret {
+	// Create metadata with only name and namespace
+	sealedSecretMeta := metav1.ObjectMeta{
+		Name:      secret.Name,
+		Namespace: secret.Namespace,
+	}
+
+	template := v1alpha1.SecretTemplateSpec{
+		Type:       secret.Type,
+		ObjectMeta: secret.ObjectMeta,
+	}
+
+	// Preserve Immutable field if set
+	if secret.Immutable != nil {
+		template.Immutable = secret.Immutable
+	}
+
 	return &v1alpha1.SealedSecret{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "bitnami.com/v1alpha1", Kind: "SealedSecret"},
-		ObjectMeta: secret.ObjectMeta,
+		ObjectMeta: sealedSecretMeta,
 		Spec: v1alpha1.SealedSecretSpec{
 			EncryptedData: data,
-			Template: v1alpha1.SecretTemplateSpec{
-				ObjectMeta: secret.ObjectMeta,
-				Type:       secret.Type,
-			},
+			Template:      template,
 		},
 	}
 }

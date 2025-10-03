@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-	"flag"
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,11 +15,14 @@ type Client struct {
 }
 
 func NewClient(ctx context.Context) (*Client, error) {
-	configPath := clientcmd.RecommendedHomeFile
-	kubeconfig := flag.String("kubeconfig", configPath, "(optional) absolute path to the kubeconfig file")
-	flag.Parse()
+	// Use standard Kubernetes config loading rules
+	// - Uses KUBECONFIG environment variable if set
+	// - Falls back to default path ~/.kube/config
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	configOverrides := &clientcmd.ConfigOverrides{}
 
-	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	kubeConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, configOverrides)
+	config, err := kubeConfig.ClientConfig()
 	if err != nil {
 		return nil, err
 	}

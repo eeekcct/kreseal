@@ -157,6 +157,8 @@ func (c *Client) ResealSecret(inputFile, outputFile string) error {
 			}
 			encryptedData[k] = encData
 		}
+
+		// Create new SealedSecret with updated encryptedData and template
 		ss := k8s.NewSealedSecret(encryptedData, secret)
 
 		// Write SealedSecret to outputFile
