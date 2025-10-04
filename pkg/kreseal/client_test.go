@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/eeekcct/kreseal/pkg/logger"
@@ -193,7 +194,7 @@ func TestClient_EditFile_Success(t *testing.T) {
 	testFile := filepath.Join(t.TempDir(), "test.yaml")
 
 	// Set EDITOR to a simple command that exits successfully on all platforms
-	if os.Getenv("OS") == "Windows_NT" {
+	if runtime.GOOS == "windows" {
 		t.Setenv("EDITOR", "powershell -NoProfile -Command echo")
 	} else {
 		t.Setenv("EDITOR", "echo")
