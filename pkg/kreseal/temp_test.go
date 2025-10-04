@@ -19,7 +19,7 @@ func TestTempFile_CreateTempFile(t *testing.T) {
 
 	// Create temp file from original file
 	originalFile := "testfile.yaml"
-	
+
 	err := tempFile.CreateTempFile(originalFile)
 	require.NoError(t, err)
 	defer tempFile.Cleanup()
@@ -30,7 +30,7 @@ func TestTempFile_CreateTempFile(t *testing.T) {
 
 	// Verify extension
 	assert.Equal(t, ".yaml", filepath.Ext(tempFile.Path))
-	
+
 	// Verify path is not empty
 	assert.NotEmpty(t, tempFile.Path)
 }
@@ -43,12 +43,12 @@ func TestTempFile_Cleanup(t *testing.T) {
 
 	// Create a temporary file
 	originalFile := "testfile.yaml"
-	
+
 	err := tempFile.CreateTempFile(originalFile)
 	require.NoError(t, err)
 
 	tempPath := tempFile.Path
-	
+
 	// Verify file exists
 	_, err = os.Stat(tempPath)
 	require.NoError(t, err)
