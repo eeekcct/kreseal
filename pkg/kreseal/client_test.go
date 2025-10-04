@@ -15,10 +15,12 @@ func TestNewClient(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
-	client := NewClient(log)
+	cert := createTestCert(t)
+	client := NewClient(log, cert)
 	assert.NotNil(t, client)
 	assert.NotNil(t, client.Logger)
-	assert.Nil(t, client.Cert)
+	assert.NotNil(t, client.Cert)
+	assert.Equal(t, cert, client.Cert)
 }
 
 func TestClient_UnsealSealedSecret_Errors(t *testing.T) {
@@ -33,7 +35,7 @@ func TestClient_UnsealSealedSecret_Errors(t *testing.T) {
 		{
 			name: "file not found",
 			setupFunc: func(t *testing.T) (string, string, *Client) {
-				return "nonexistent.yaml", "output.yaml", NewClient(log)
+				return "nonexistent.yaml", "output.yaml", NewClient(log, createTestCert(t))
 			},
 			expectedError: "failed to read input file",
 		},
@@ -58,7 +60,7 @@ spec:
 				outputFile := filepath.Join(tmpDir, "secret.yaml")
 				err := os.WriteFile(inputFile, []byte(testSealedSecret), 0644)
 				require.NoError(t, err)
-				return inputFile, outputFile, NewClient(log)
+				return inputFile, outputFile, NewClient(log, createTestCert(t))
 			},
 			expectedError: "", // nil pointer error
 		},
@@ -75,7 +77,7 @@ metadata:
 				outputFile := filepath.Join(tmpDir, "secret.yaml")
 				err := os.WriteFile(inputFile, []byte(testData), 0644)
 				require.NoError(t, err)
-				return inputFile, outputFile, NewClient(log)
+				return inputFile, outputFile, NewClient(log, createTestCert(t))
 			},
 			expectedError: "no SealedSecrets found",
 		},
@@ -107,14 +109,14 @@ func TestClient_ResealSecret_Errors(t *testing.T) {
 			name: "output file not found (no backup)",
 			setupFunc: func(t *testing.T) (string, string, *Client) {
 				tmpDir := t.TempDir()
-				return filepath.Join(tmpDir, "secret.yaml"), filepath.Join(tmpDir, "sealed.yaml"), NewClient(log)
+				return filepath.Join(tmpDir, "secret.yaml"), filepath.Join(tmpDir, "sealed.yaml"), NewClient(log, createTestCert(t))
 			},
 			expectedError: "failed to create backup",
 		},
 		{
 			name: "input file not found",
 			setupFunc: func(t *testing.T) (string, string, *Client) {
-				return "nonexistent.yaml", "output.yaml", NewClient(log)
+				return "nonexistent.yaml", "output.yaml", NewClient(log, createTestCert(t))
 			},
 			expectedError: "failed to create backup",
 		},
@@ -133,7 +135,7 @@ metadata:
 				require.NoError(t, err)
 				err = os.WriteFile(outputFile, []byte("original content"), 0644)
 				require.NoError(t, err)
-				return inputFile, outputFile, NewClient(log)
+				return inputFile, outputFile, NewClient(log, createTestCert(t))
 			},
 			expectedError: "no Secrets found",
 			checkRestore:  true,
@@ -164,28 +166,11 @@ metadata:
 	}
 }
 
-func TestClient_SetCert_Error(t *testing.T) {
-	log := logger.New(false)
-	defer log.Close()
-
-	client := NewClient(log)
-
-	opts := ClientOptions{
-		SecretsName: "non-existent-secret",
-		Namespace:   "default",
-	}
-
-	err := client.SetCert(opts)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to load certificate")
-	assert.Nil(t, client.Cert)
-}
-
 func TestClient_EditFile_InvalidEditor(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
-	client := NewClient(log)
+	client := NewClient(log, createTestCert(t))
 
 	testFile := filepath.Join(t.TempDir(), "test.yaml")
 	err := os.WriteFile(testFile, []byte("test content"), 0644)
@@ -199,11 +184,31 @@ func TestClient_EditFile_InvalidEditor(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestClient_EditFile_Success(t *testing.T) {
+	log := logger.New(false)
+	defer log.Close()
+
+	client := NewClient(log, createTestCert(t))
+
+	testFile := filepath.Join(t.TempDir(), "test.yaml")
+
+	// Set EDITOR to a simple command that exits successfully on all platforms
+	if os.Getenv("OS") == "Windows_NT" {
+		t.Setenv("EDITOR", "powershell -NoProfile -Command echo")
+	} else {
+		t.Setenv("EDITOR", "echo")
+	}
+
+	// EditFile should successfully execute the editor command
+	err := client.EditFile(testFile)
+	assert.NoError(t, err)
+}
+
 func TestClient_HelperFunctions(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
-	client := NewClient(log)
+	client := NewClient(log, createTestCert(t))
 
 	t.Run("marshalYAML", func(t *testing.T) {
 		data := map[string]string{"key": "value"}
@@ -264,7 +269,7 @@ data:
 	err = os.WriteFile(outputFile, []byte("old sealed secret"), 0644)
 	require.NoError(t, err)
 
-	client := NewClient(log)
+	client := NewClient(log, createTestCert(t))
 	client.Cert = cert
 
 	// Reseal should succeed
@@ -317,7 +322,7 @@ spec:
 	err = os.WriteFile(inputFile, []byte(testSealedSecret), 0644)
 	require.NoError(t, err)
 
-	client := NewClient(log)
+	client := NewClient(log, createTestCert(t))
 	client.Cert = cert
 
 	// Unseal should succeed

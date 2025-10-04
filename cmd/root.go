@@ -22,6 +22,7 @@ THE SOFTWARE.
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/eeekcct/kreseal/pkg/kreseal"
@@ -49,15 +50,14 @@ var rootCmd = &cobra.Command{
 		}
 		orgFile := args[0]
 
-		// Create kreseal client
-		client := kreseal.NewClient(log)
-		err := client.SetCert(kreseal.ClientOptions{
-			SecretsName: secretsName,
-			Namespace:   namespace,
-		})
+		// Load certificate
+		cert, err := kreseal.NewCert(secretsName, namespace)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to load certificate: %w", err)
 		}
+
+		// Create kreseal client with certificate
+		client := kreseal.NewClient(log, cert)
 
 		// Create temporary file
 		tempFile := kreseal.NewTempFile(log)

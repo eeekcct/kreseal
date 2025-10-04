@@ -44,13 +44,6 @@ func TestLogger_Errorf(t *testing.T) {
 	// Error messages should always be logged
 }
 
-func TestLogger_Fatalf(t *testing.T) {
-	// Note: Fatalf typically calls os.Exit, so we can't test it directly
-	// In a real scenario, you might want to use dependency injection
-	// to test fatal scenarios without actually exiting
-	t.Skip("Fatalf calls os.Exit, skipping direct test")
-}
-
 func TestLogger_Close(t *testing.T) {
 	logger := New(false)
 	logger.Close()

@@ -16,7 +16,7 @@ type ClientInterface interface {
 
 type Client struct {
 	ctx       context.Context
-	ClientSet *kubernetes.Clientset
+	ClientSet kubernetes.Interface
 }
 
 func NewClient(ctx context.Context) (*Client, error) {

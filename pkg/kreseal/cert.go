@@ -21,6 +21,8 @@ type Cert struct {
 	PublicKey       *rsa.PublicKey
 	PrivateKey      *rsa.PrivateKey
 	SessionKeyBytes int
+	SecretsName     string
+	Namespace       string
 }
 
 // NewCert creates a new Cert instance
@@ -43,6 +45,8 @@ func NewCertWithClient(client k8s.ClientInterface, name, namespace string) (*Cer
 		PublicKey:       pubKey,
 		PrivateKey:      privKey,
 		SessionKeyBytes: 32, // AES-256
+		SecretsName:     name,
+		Namespace:       namespace,
 	}, nil
 }
 

@@ -12,33 +12,18 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-// ClientOptions represents configuration options for the Client
-type ClientOptions struct {
-	SecretsName string
-	Namespace   string
-}
-
 // Client represents a kreseal client with configuration
 type Client struct {
 	Cert   *Cert
 	Logger *logger.Logger
 }
 
-// NewClient creates a new kreseal client
-func NewClient(logger *logger.Logger) *Client {
+// NewClient creates a new kreseal client with an existing certificate
+func NewClient(logger *logger.Logger, cert *Cert) *Client {
 	return &Client{
+		Cert:   cert,
 		Logger: logger,
 	}
-}
-
-// SetOptions sets the client configuration options
-func (c *Client) SetCert(opts ClientOptions) error {
-	cert, err := NewCert(opts.SecretsName, opts.Namespace)
-	if err != nil {
-		return fmt.Errorf("failed to load certificate: %w", err)
-	}
-	c.Cert = cert
-	return nil
 }
 
 // UnsealSealedSecret unseals a SealedSecret to a temporary file
