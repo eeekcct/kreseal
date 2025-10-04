@@ -130,7 +130,7 @@ func TestCert_Decrypt_ShortData(t *testing.T) {
 
 	// Create data that's too short (less than 2 bytes)
 	shortData := base64.StdEncoding.EncodeToString([]byte{0x00})
-	
+
 	_, err = cert.Decrypt(shortData, []byte("label"))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid encrypted data length")

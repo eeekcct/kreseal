@@ -42,12 +42,12 @@ spec:
 
 	inputFile := filepath.Join(t.TempDir(), "sealedsecret.yaml")
 	outputFile := filepath.Join(t.TempDir(), "secret.yaml")
-	
+
 	err := os.WriteFile(inputFile, []byte(testSealedSecret), 0644)
 	require.NoError(t, err)
 
 	client := NewClient(log)
-	
+
 	// Note: This will fail without a valid cert, which is expected in unit tests
 	// In a real scenario, you'd mock the certificate
 	err = client.UnsealSealedSecret(inputFile, outputFile)
@@ -59,7 +59,7 @@ func TestClient_UnsealSealedSecret_FileNotFound(t *testing.T) {
 	defer log.Close()
 
 	client := NewClient(log)
-	
+
 	err := client.UnsealSealedSecret("nonexistent.yaml", "output.yaml")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read input file")
@@ -79,10 +79,10 @@ func TestClient_EditFile(t *testing.T) {
 	// Set EDITOR to a command that will succeed (like 'type' on Windows or 'cat' on Unix)
 	originalEditor := os.Getenv("EDITOR")
 	defer os.Setenv("EDITOR", originalEditor)
-	
+
 	// Use a simple command that exists on Windows
 	os.Setenv("EDITOR", "cmd /c type")
-	
+
 	// Note: This might fail in CI/CD environments without interactive terminal
 	// but it tests the basic function structure
 	err = client.EditFile(testFile)
@@ -94,7 +94,7 @@ func TestClient_ResealSecret_FileNotFound(t *testing.T) {
 	defer log.Close()
 
 	client := NewClient(log)
-	
+
 	err := client.ResealSecret("nonexistent.yaml", "output.yaml")
 	assert.Error(t, err)
 }
@@ -104,11 +104,11 @@ func TestClient_marshalYAML(t *testing.T) {
 	defer log.Close()
 
 	client := NewClient(log)
-	
+
 	data := map[string]string{
 		"key": "value",
 	}
-	
+
 	var buf bytes.Buffer
 	err := client.marshalYAML(data, &buf)
 	assert.NoError(t, err)
@@ -121,14 +121,14 @@ func TestClient_writeYAML(t *testing.T) {
 	defer log.Close()
 
 	client := NewClient(log)
-	
+
 	var buf bytes.Buffer
 	buf.WriteString("test: data\n")
-	
+
 	outputFile := filepath.Join(t.TempDir(), "output.yaml")
 	err := client.writeYAML(&buf, outputFile)
 	assert.NoError(t, err)
-	
+
 	// Verify file was written
 	content, err := os.ReadFile(outputFile)
 	require.NoError(t, err)
@@ -140,10 +140,10 @@ func TestClient_writeYAML_InvalidPath(t *testing.T) {
 	defer log.Close()
 
 	client := NewClient(log)
-	
+
 	var buf bytes.Buffer
 	buf.WriteString("test: data\n")
-	
+
 	// Use invalid path
 	err := client.writeYAML(&buf, "/invalid/path/that/does/not/exist/file.yaml")
 	assert.Error(t, err)
