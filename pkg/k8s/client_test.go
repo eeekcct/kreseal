@@ -23,20 +23,8 @@ func TestNewClient(t *testing.T) {
 		assert.NoError(t, err)
 		assert.NotNil(t, client)
 		assert.NotNil(t, client.ClientSet)
-	}
-}
-
-func TestNewClient_WithContext(t *testing.T) {
-	ctx := context.Background()
-
-	client, err := NewClient(ctx)
-
-	// Test passes whether kubeconfig exists or not
-	if client != nil {
 		assert.NotNil(t, client.ctx)
 		assert.Equal(t, ctx, client.ctx)
-	} else {
-		assert.Error(t, err)
 	}
 }
 

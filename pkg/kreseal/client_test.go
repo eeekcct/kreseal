@@ -21,12 +21,26 @@ func TestNewClient(t *testing.T) {
 	assert.Nil(t, client.Cert)
 }
 
-func TestClient_UnsealSealedSecret(t *testing.T) {
+func TestClient_UnsealSealedSecret_Errors(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
-	// Create test SealedSecret file
-	testSealedSecret := `---
+	tests := []struct {
+		name          string
+		setupFunc     func(t *testing.T) (inputFile, outputFile string, client *Client)
+		expectedError string
+	}{
+		{
+			name: "file not found",
+			setupFunc: func(t *testing.T) (string, string, *Client) {
+				return "nonexistent.yaml", "output.yaml", NewClient(log)
+			},
+			expectedError: "failed to read input file",
+		},
+		{
+			name: "no cert",
+			setupFunc: func(t *testing.T) (string, string, *Client) {
+				testSealedSecret := `---
 apiVersion: bitnami.com/v1alpha1
 kind: SealedSecret
 metadata:
@@ -39,112 +53,280 @@ spec:
     metadata:
       name: test-secret
     type: Opaque`
+				tmpDir := t.TempDir()
+				inputFile := filepath.Join(tmpDir, "sealedsecret.yaml")
+				outputFile := filepath.Join(tmpDir, "secret.yaml")
+				err := os.WriteFile(inputFile, []byte(testSealedSecret), 0644)
+				require.NoError(t, err)
+				return inputFile, outputFile, NewClient(log)
+			},
+			expectedError: "", // nil pointer error
+		},
+		{
+			name: "no sealed secrets",
+			setupFunc: func(t *testing.T) (string, string, *Client) {
+				testData := `---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm`
+				tmpDir := t.TempDir()
+				inputFile := filepath.Join(tmpDir, "invalid.yaml")
+				outputFile := filepath.Join(tmpDir, "secret.yaml")
+				err := os.WriteFile(inputFile, []byte(testData), 0644)
+				require.NoError(t, err)
+				return inputFile, outputFile, NewClient(log)
+			},
+			expectedError: "no SealedSecrets found",
+		},
+	}
 
-	inputFile := filepath.Join(t.TempDir(), "sealedsecret.yaml")
-	outputFile := filepath.Join(t.TempDir(), "secret.yaml")
-
-	err := os.WriteFile(inputFile, []byte(testSealedSecret), 0644)
-	require.NoError(t, err)
-
-	client := NewClient(log)
-
-	// Note: This will fail without a valid cert, which is expected in unit tests
-	// In a real scenario, you'd mock the certificate
-	err = client.UnsealSealedSecret(inputFile, outputFile)
-	assert.Error(t, err) // Expected to fail without cert
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inputFile, outputFile, client := tt.setupFunc(t)
+			err := client.UnsealSealedSecret(inputFile, outputFile)
+			assert.Error(t, err)
+			if tt.expectedError != "" {
+				assert.Contains(t, err.Error(), tt.expectedError)
+			}
+		})
+	}
 }
 
-func TestClient_UnsealSealedSecret_FileNotFound(t *testing.T) {
+func TestClient_ResealSecret_Errors(t *testing.T) {
+	log := logger.New(false)
+	defer log.Close()
+
+	tests := []struct {
+		name          string
+		setupFunc     func(t *testing.T) (inputFile, outputFile string, client *Client)
+		expectedError string
+		checkRestore  bool
+	}{
+		{
+			name: "output file not found (no backup)",
+			setupFunc: func(t *testing.T) (string, string, *Client) {
+				tmpDir := t.TempDir()
+				return filepath.Join(tmpDir, "secret.yaml"), filepath.Join(tmpDir, "sealed.yaml"), NewClient(log)
+			},
+			expectedError: "failed to create backup",
+		},
+		{
+			name: "input file not found",
+			setupFunc: func(t *testing.T) (string, string, *Client) {
+				return "nonexistent.yaml", "output.yaml", NewClient(log)
+			},
+			expectedError: "failed to create backup",
+		},
+		{
+			name: "no secrets in input",
+			setupFunc: func(t *testing.T) (string, string, *Client) {
+				testData := `---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-cm`
+				tmpDir := t.TempDir()
+				inputFile := filepath.Join(tmpDir, "invalid.yaml")
+				outputFile := filepath.Join(tmpDir, "sealed.yaml")
+				err := os.WriteFile(inputFile, []byte(testData), 0644)
+				require.NoError(t, err)
+				err = os.WriteFile(outputFile, []byte("original content"), 0644)
+				require.NoError(t, err)
+				return inputFile, outputFile, NewClient(log)
+			},
+			expectedError: "no Secrets found",
+			checkRestore:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inputFile, outputFile, client := tt.setupFunc(t)
+
+			// Save original content if checking restore
+			var originalContent []byte
+			if tt.checkRestore {
+				originalContent, _ = os.ReadFile(outputFile)
+			}
+
+			err := client.ResealSecret(inputFile, outputFile)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), tt.expectedError)
+
+			// Verify backup was restored
+			if tt.checkRestore {
+				content, err := os.ReadFile(outputFile)
+				require.NoError(t, err)
+				assert.Equal(t, originalContent, content)
+			}
+		})
+	}
+}
+
+func TestClient_SetCert_Error(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
 	client := NewClient(log)
 
-	err := client.UnsealSealedSecret("nonexistent.yaml", "output.yaml")
+	opts := ClientOptions{
+		SecretsName: "non-existent-secret",
+		Namespace:   "default",
+	}
+
+	err := client.SetCert(opts)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to read input file")
+	assert.Contains(t, err.Error(), "failed to load certificate")
+	assert.Nil(t, client.Cert)
 }
 
-func TestClient_EditFile(t *testing.T) {
+func TestClient_EditFile_InvalidEditor(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
 	client := NewClient(log)
 
-	// Create a test file
 	testFile := filepath.Join(t.TempDir(), "test.yaml")
 	err := os.WriteFile(testFile, []byte("test content"), 0644)
 	require.NoError(t, err)
 
-	// Set EDITOR to a command that will succeed (like 'type' on Windows or 'cat' on Unix)
 	originalEditor := os.Getenv("EDITOR")
 	defer os.Setenv("EDITOR", originalEditor)
+	os.Setenv("EDITOR", "nonexistent-editor-12345")
 
-	// Use a simple command that exists on Windows
-	os.Setenv("EDITOR", "cmd /c type")
-
-	// Note: This might fail in CI/CD environments without interactive terminal
-	// but it tests the basic function structure
 	err = client.EditFile(testFile)
-	// We don't assert NoError here because it depends on the environment
-}
-
-func TestClient_ResealSecret_FileNotFound(t *testing.T) {
-	log := logger.New(false)
-	defer log.Close()
-
-	client := NewClient(log)
-
-	err := client.ResealSecret("nonexistent.yaml", "output.yaml")
 	assert.Error(t, err)
 }
 
-func TestClient_marshalYAML(t *testing.T) {
+func TestClient_HelperFunctions(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
 	client := NewClient(log)
 
-	data := map[string]string{
-		"key": "value",
-	}
+	t.Run("marshalYAML", func(t *testing.T) {
+		data := map[string]string{"key": "value"}
+		var buf bytes.Buffer
+		err := client.marshalYAML(data, &buf)
+		assert.NoError(t, err)
+		assert.Contains(t, buf.String(), "---")
+		assert.Contains(t, buf.String(), "key: value")
+	})
 
-	var buf bytes.Buffer
-	err := client.marshalYAML(data, &buf)
-	assert.NoError(t, err)
-	assert.Contains(t, buf.String(), "---")
-	assert.Contains(t, buf.String(), "key: value")
+	t.Run("writeYAML success", func(t *testing.T) {
+		var buf bytes.Buffer
+		buf.WriteString("test: data\n")
+		outputFile := filepath.Join(t.TempDir(), "output.yaml")
+		err := client.writeYAML(&buf, outputFile)
+		assert.NoError(t, err)
+		content, err := os.ReadFile(outputFile)
+		require.NoError(t, err)
+		assert.Equal(t, "test: data\n", string(content))
+	})
+
+	t.Run("writeYAML invalid path", func(t *testing.T) {
+		var buf bytes.Buffer
+		buf.WriteString("test: data\n")
+		err := client.writeYAML(&buf, "/invalid/path/that/does/not/exist/file.yaml")
+		assert.Error(t, err)
+	})
 }
 
-func TestClient_writeYAML(t *testing.T) {
+func TestClient_ResealSecret_Success(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
+	// Create a test certificate
+	cert := createTestCert(t)
+
+	// Valid Secret YAML
+	testSecret := `---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+  namespace: default
+type: Opaque
+data:
+  username: dXNlcm5hbWU=
+  password: cGFzc3dvcmQ=`
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "secret.yaml")
+	outputFile := filepath.Join(tmpDir, "sealed.yaml")
+
+	// Create input file
+	err := os.WriteFile(inputFile, []byte(testSecret), 0644)
+	require.NoError(t, err)
+
+	// Create output file (to be backed up)
+	err = os.WriteFile(outputFile, []byte("old sealed secret"), 0644)
+	require.NoError(t, err)
+
 	client := NewClient(log)
+	client.Cert = cert
 
-	var buf bytes.Buffer
-	buf.WriteString("test: data\n")
-
-	outputFile := filepath.Join(t.TempDir(), "output.yaml")
-	err := client.writeYAML(&buf, outputFile)
+	// Reseal should succeed
+	err = client.ResealSecret(inputFile, outputFile)
 	assert.NoError(t, err)
 
-	// Verify file was written
+	// Verify output file was created and contains SealedSecret
 	content, err := os.ReadFile(outputFile)
 	require.NoError(t, err)
-	assert.Equal(t, "test: data\n", string(content))
+	assert.Contains(t, string(content), "kind: SealedSecret")
+	assert.Contains(t, string(content), "encryptedData:")
+
+	// Verify backup was removed
+	backupFile := outputFile + ".bak"
+	_, err = os.Stat(backupFile)
+	assert.True(t, os.IsNotExist(err), "backup file should be removed on success")
 }
 
-func TestClient_writeYAML_InvalidPath(t *testing.T) {
+func TestClient_UnsealSealedSecret_Success(t *testing.T) {
 	log := logger.New(false)
 	defer log.Close()
 
+	cert := createTestCert(t)
+
+	// Encrypt some test data
+	testData := []byte("secret-value")
+	label := []byte("default/test-secret")
+	encryptedValue, err := cert.Encrypt(testData, label)
+	require.NoError(t, err)
+
+	// Create SealedSecret with encrypted data
+	testSealedSecret := `---
+apiVersion: bitnami.com/v1alpha1
+kind: SealedSecret
+metadata:
+  name: test-secret
+  namespace: default
+spec:
+  encryptedData:
+    password: ` + encryptedValue + `
+  template:
+    metadata:
+      name: test-secret
+    type: Opaque`
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "sealedsecret.yaml")
+	outputFile := filepath.Join(tmpDir, "secret.yaml")
+
+	err = os.WriteFile(inputFile, []byte(testSealedSecret), 0644)
+	require.NoError(t, err)
+
 	client := NewClient(log)
+	client.Cert = cert
 
-	var buf bytes.Buffer
-	buf.WriteString("test: data\n")
+	// Unseal should succeed
+	err = client.UnsealSealedSecret(inputFile, outputFile)
+	assert.NoError(t, err)
 
-	// Use invalid path
-	err := client.writeYAML(&buf, "/invalid/path/that/does/not/exist/file.yaml")
-	assert.Error(t, err)
+	// Verify output file contains Secret
+	content, err := os.ReadFile(outputFile)
+	require.NoError(t, err)
+	assert.Contains(t, string(content), "kind: Secret")
+	assert.Contains(t, string(content), "password:")
 }

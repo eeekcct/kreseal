@@ -9,6 +9,11 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+// ClientInterface is an interface for Kubernetes client operations
+type ClientInterface interface {
+	GetSecret(name, namespace string) (*corev1.Secret, error)
+}
+
 type Client struct {
 	ctx       context.Context
 	ClientSet *kubernetes.Clientset

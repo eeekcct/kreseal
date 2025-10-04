@@ -35,8 +35,7 @@ func NewClient(logger *logger.Logger) *Client {
 func (c *Client) SetCert(opts ClientOptions) error {
 	cert, err := NewCert(opts.SecretsName, opts.Namespace)
 	if err != nil {
-		c.Logger.Fatalf("Failed to load certificate: %v", err)
-		return err
+		return fmt.Errorf("failed to load certificate: %w", err)
 	}
 	c.Cert = cert
 	return nil
