@@ -3,6 +3,7 @@ package kreseal
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -115,4 +116,50 @@ func TestCert_EncryptDecrypt_DifferentLabels(t *testing.T) {
 	decrypted, err := cert.Decrypt(encrypted, label1)
 	assert.NoError(t, err)
 	assert.Equal(t, data, decrypted)
+}
+
+func TestCert_Decrypt_ShortData(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	cert := &Cert{
+		PublicKey:       &privateKey.PublicKey,
+		PrivateKey:      privateKey,
+		SessionKeyBytes: 32,
+	}
+
+	// Create data that's too short (less than 2 bytes)
+	shortData := base64.StdEncoding.EncodeToString([]byte{0x00})
+	
+	_, err = cert.Decrypt(shortData, []byte("label"))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid encrypted data length")
+}
+
+func TestCert_Encrypt_EmptyData(t *testing.T) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	cert := &Cert{
+		PublicKey:       &privateKey.PublicKey,
+		PrivateKey:      privateKey,
+		SessionKeyBytes: 32,
+	}
+
+	// Encrypt empty data
+	encrypted, err := cert.Encrypt([]byte{}, []byte("label"))
+	assert.NoError(t, err)
+	assert.NotEmpty(t, encrypted)
+
+	// Decrypt should work
+	decrypted, err := cert.Decrypt(encrypted, []byte("label"))
+	assert.NoError(t, err)
+	assert.Empty(t, decrypted)
+}
+
+func TestNewCert_InvalidSecret(t *testing.T) {
+	// This will fail because the secret doesn't exist
+	cert, err := NewCert("non-existent-secret", "default")
+	assert.Error(t, err)
+	assert.Nil(t, cert)
 }

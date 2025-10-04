@@ -264,3 +264,56 @@ func TestGetEncryptionLabelFromSecret(t *testing.T) {
 	assert.NotNil(t, label)
 	assert.NotEmpty(t, label)
 }
+
+func TestReadSecrets_InvalidYAML(t *testing.T) {
+	invalidYAML := `
+kind: Secret
+metadata:
+  name: test
+  invalid yaml structure: [
+`
+	secrets, err := ReadSecrets([]byte(invalidYAML))
+	assert.Error(t, err)
+	assert.Nil(t, secrets)
+}
+
+func TestReadSealedSecrets_InvalidYAML(t *testing.T) {
+	invalidYAML := `
+kind: SealedSecret
+metadata:
+  name: test
+  invalid yaml structure: [
+`
+	sealedSecrets, err := ReadSealedSecrets([]byte(invalidYAML))
+	assert.Error(t, err)
+	assert.Nil(t, sealedSecrets)
+}
+
+func TestNewSecret_EmptyData(t *testing.T) {
+	spec := v1alpha1.SecretTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "empty-secret",
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	secret := NewSecret(map[string][]byte{}, spec)
+	assert.NotNil(t, secret)
+	assert.Empty(t, secret.Data)
+}
+
+func TestNewSealedSecret_EmptyLabelsAndAnnotations(t *testing.T) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-secret",
+			Namespace: "default",
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	ss := NewSealedSecret(map[string]string{"key": "value"}, secret)
+	assert.NotNil(t, ss)
+	assert.Equal(t, "test-secret", ss.Name)
+	assert.Empty(t, ss.Labels)
+	assert.Empty(t, ss.Annotations)
+}
