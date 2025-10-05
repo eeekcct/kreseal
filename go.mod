@@ -2,8 +2,6 @@ module github.com/eeekcct/kreseal
 
 go 1.24.4
 
-toolchain go1.25.1
-
 require (
 	github.com/bitnami-labs/sealed-secrets v0.32.2
 	github.com/spf13/cobra v1.10.1
