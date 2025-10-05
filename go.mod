@@ -2,7 +2,7 @@ module github.com/eeekcct/kreseal
 
 go 1.24.4
 
-toolchain go1.24.7
+toolchain go1.25.1
 
 require (
 	github.com/bitnami-labs/sealed-secrets v0.32.2
