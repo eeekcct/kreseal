@@ -107,19 +107,19 @@ func TestClient_ResealSecret_Errors(t *testing.T) {
 		checkRestore  bool
 	}{
 		{
-			name: "output file not found (no backup)",
+			name: "input file not found (no backup needed)",
 			setupFunc: func(t *testing.T) (string, string, *Client) {
 				tmpDir := t.TempDir()
 				return filepath.Join(tmpDir, "secret.yaml"), filepath.Join(tmpDir, "sealed.yaml"), NewClient(log, createTestCert(t))
 			},
-			expectedError: "failed to create backup",
+			expectedError: "failed to read input file",
 		},
 		{
 			name: "input file not found",
 			setupFunc: func(t *testing.T) (string, string, *Client) {
 				return "nonexistent.yaml", "output.yaml", NewClient(log, createTestCert(t))
 			},
-			expectedError: "failed to create backup",
+			expectedError: "failed to read input file",
 		},
 		{
 			name: "no secrets in input",
@@ -287,6 +287,47 @@ data:
 	backupFile := outputFile + ".bak"
 	_, err = os.Stat(backupFile)
 	assert.True(t, os.IsNotExist(err), "backup file should be removed on success")
+}
+
+func TestClient_ResealSecret_NoNamespace(t *testing.T) {
+	log := logger.New(false)
+	defer func() { _ = log.Close() }()
+
+	// Create a test certificate with specific namespace
+	cert := createTestCert(t)
+	cert.Namespace = "test-namespace"
+
+	// Valid Secret YAML without namespace
+	testSecret := `---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-secret
+type: Opaque
+data:
+  username: dXNlcm5hbWU=
+  password: cGFzc3dvcmQ=`
+
+	tmpDir := t.TempDir()
+	inputFile := filepath.Join(tmpDir, "secret.yaml")
+	outputFile := filepath.Join(tmpDir, "sealed.yaml")
+
+	// Create input file
+	err := os.WriteFile(inputFile, []byte(testSecret), 0644)
+	require.NoError(t, err)
+
+	client := NewClient(log, cert)
+
+	// Reseal should succeed and use namespace from cert
+	err = client.ResealSecret(inputFile, outputFile)
+	assert.NoError(t, err)
+
+	// Verify output file contains SealedSecret with namespace from cert
+	content, err := os.ReadFile(outputFile)
+	require.NoError(t, err)
+	assert.Contains(t, string(content), "kind: SealedSecret")
+	assert.Contains(t, string(content), "namespace: "+cert.Namespace)
+	assert.Contains(t, string(content), "encryptedData:")
 }
 
 func TestClient_UnsealSealedSecret_Success(t *testing.T) {
