@@ -12,7 +12,7 @@
     enabled: true,
     schedule: ["before 3am on Monday"],
   },
-  automerge: false,
+  automerge: ture,
   platformAutomerge: false,
   ignoreTests: false,
   labels: ["dependencies"],
