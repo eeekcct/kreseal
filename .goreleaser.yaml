@@ -22,6 +22,11 @@ builds:
       - linux
       - windows
       - darwin
+    ldflags:
+      - -s -w
+      - -X github.com/eeekcct/kreseal/cmd.version={{.Version}}
+      - -X github.com/eeekcct/kreseal/cmd.commit={{.Commit}}
+      - -X github.com/eeekcct/kreseal/cmd.date={{.Date}}
 
 archives:
   - formats: [tar.gz]
