@@ -170,23 +170,23 @@ func TestNewCert_KubeconfigError(t *testing.T) {
 	defer func() {
 		// Restore environment
 		if originalKubeconfig != "" {
-			os.Setenv("KUBECONFIG", originalKubeconfig)
+			_ = os.Setenv("KUBECONFIG", originalKubeconfig)
 		} else {
-			os.Unsetenv("KUBECONFIG")
+			_ = os.Unsetenv("KUBECONFIG")
 		}
 		if originalHome != "" {
-			os.Setenv("HOME", originalHome)
+			_ = os.Setenv("HOME", originalHome)
 		}
 		if originalUserProfile != "" {
-			os.Setenv("USERPROFILE", originalUserProfile)
+			_ = os.Setenv("USERPROFILE", originalUserProfile)
 		}
 	}()
 
 	// Set kubeconfig to non-existent path
-	os.Setenv("KUBECONFIG", "/nonexistent/invalid/kubeconfig.yaml")
+	_ = os.Setenv("KUBECONFIG", "/nonexistent/invalid/kubeconfig.yaml")
 	// Also clear HOME to prevent fallback to ~/.kube/config
-	os.Unsetenv("HOME")
-	os.Unsetenv("USERPROFILE")
+	_ = os.Unsetenv("HOME")
+	_ = os.Unsetenv("USERPROFILE")
 
 	cert, err := NewCert("test-secret", "default")
 
@@ -254,7 +254,7 @@ func Test_parsePublicKey(t *testing.T) {
 	parsedKey, err := parsePublicKey(certPEM)
 	assert.NoError(t, err)
 	assert.NotNil(t, parsedKey)
-	assert.Equal(t, privateKey.PublicKey.N, parsedKey.N)
+	assert.Equal(t, privateKey.Public().(*rsa.PublicKey).N, parsedKey.N)
 }
 
 func Test_parsePublicKey_InvalidPEM(t *testing.T) {
@@ -335,7 +335,7 @@ func Test_getCertFromClient_Success(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, pubKey)
 	assert.NotNil(t, privKey)
-	assert.Equal(t, privateKey.PublicKey.N, pubKey.N)
+	assert.Equal(t, privateKey.Public().(*rsa.PublicKey).N, pubKey.N)
 	assert.Equal(t, privateKey.N, privKey.N)
 }
 
@@ -409,7 +409,7 @@ func TestNewCertWithClient_Success(t *testing.T) {
 	assert.NotNil(t, cert.PublicKey)
 	assert.NotNil(t, cert.PrivateKey)
 	assert.Equal(t, 32, cert.SessionKeyBytes)
-	assert.Equal(t, privateKey.PublicKey.N, cert.PublicKey.N)
+	assert.Equal(t, privateKey.Public().(*rsa.PublicKey).N, cert.PublicKey.N)
 	assert.Equal(t, privateKey.N, cert.PrivateKey.N)
 }
 

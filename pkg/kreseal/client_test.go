@@ -14,7 +14,7 @@ import (
 
 func TestNewClient(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	cert := createTestCert(t)
 	client := NewClient(log, cert)
@@ -26,7 +26,7 @@ func TestNewClient(t *testing.T) {
 
 func TestClient_UnsealSealedSecret_Errors(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	tests := []struct {
 		name          string
@@ -98,7 +98,7 @@ metadata:
 
 func TestClient_ResealSecret_Errors(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	tests := []struct {
 		name          string
@@ -169,7 +169,7 @@ metadata:
 
 func TestClient_EditFile_InvalidEditor(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	client := NewClient(log, createTestCert(t))
 
@@ -178,8 +178,8 @@ func TestClient_EditFile_InvalidEditor(t *testing.T) {
 	require.NoError(t, err)
 
 	originalEditor := os.Getenv("EDITOR")
-	defer os.Setenv("EDITOR", originalEditor)
-	os.Setenv("EDITOR", "nonexistent-editor-12345")
+	defer func() { _ = os.Setenv("EDITOR", originalEditor) }()
+	_ = os.Setenv("EDITOR", "nonexistent-editor-12345")
 
 	err = client.EditFile(testFile)
 	assert.Error(t, err)
@@ -187,7 +187,7 @@ func TestClient_EditFile_InvalidEditor(t *testing.T) {
 
 func TestClient_EditFile_Success(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	client := NewClient(log, createTestCert(t))
 
@@ -207,7 +207,7 @@ func TestClient_EditFile_Success(t *testing.T) {
 
 func TestClient_HelperFunctions(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	client := NewClient(log, createTestCert(t))
 
@@ -241,7 +241,7 @@ func TestClient_HelperFunctions(t *testing.T) {
 
 func TestClient_ResealSecret_Success(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	// Create a test certificate
 	cert := createTestCert(t)
@@ -291,7 +291,7 @@ data:
 
 func TestClient_UnsealSealedSecret_Success(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	cert := createTestCert(t)
 

@@ -46,7 +46,7 @@ func TestLogger_Errorf(t *testing.T) {
 
 func TestLogger_Close(t *testing.T) {
 	logger := New(false)
-	logger.Close()
+	_ = logger.Close()
 	// Close doesn't return an error, just ensure it doesn't panic
 	assert.NotNil(t, logger)
 }

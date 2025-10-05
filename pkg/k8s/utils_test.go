@@ -218,8 +218,8 @@ func TestNewSealedSecret(t *testing.T) {
 	assert.Equal(t, encryptedData["username"], ss.Spec.EncryptedData["username"])
 	assert.Equal(t, encryptedData["password"], ss.Spec.EncryptedData["password"])
 	assert.Equal(t, corev1.SecretTypeOpaque, ss.Spec.Template.Type)
-	assert.Equal(t, "myapp", ss.Spec.Template.ObjectMeta.Labels["app"])
-	assert.Equal(t, "test", ss.Spec.Template.ObjectMeta.Annotations["description"])
+	assert.Equal(t, "myapp", ss.Spec.Template.Labels["app"])
+	assert.Equal(t, "test", ss.Spec.Template.Annotations["description"])
 }
 
 func TestNewSealedSecret_WithImmutable(t *testing.T) {

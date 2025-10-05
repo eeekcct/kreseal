@@ -112,17 +112,17 @@ func (c *Client) ResealSecret(inputFile, outputFile string) error {
 
 	input, err := os.ReadFile(inputFile)
 	if err != nil {
-		os.Rename(backup, outputFile)
+		_ = os.Rename(backup, outputFile)
 		return fmt.Errorf("failed to read input file: %w", err)
 	}
 
 	secrets, err := k8s.ReadSecrets(input)
 	if err != nil {
-		os.Rename(backup, outputFile)
+		_ = os.Rename(backup, outputFile)
 		return fmt.Errorf("failed to read Secrets from input: %w", err)
 	}
 	if len(secrets) == 0 {
-		os.Rename(backup, outputFile)
+		_ = os.Rename(backup, outputFile)
 		return fmt.Errorf("no Secrets found in input")
 	}
 
@@ -136,7 +136,7 @@ func (c *Client) ResealSecret(inputFile, outputFile string) error {
 		for k, v := range secretData {
 			encData, err := c.Cert.Encrypt(v, label)
 			if err != nil {
-				os.Rename(backup, outputFile)
+				_ = os.Rename(backup, outputFile)
 				return fmt.Errorf("failed to encrypt data for key %s: %w", k, err)
 			}
 			encryptedData[k] = encData
@@ -147,13 +147,13 @@ func (c *Client) ResealSecret(inputFile, outputFile string) error {
 
 		// Write SealedSecret to outputFile
 		if err := c.marshalYAML(ss, &buf); err != nil {
-			os.Rename(backup, outputFile)
+			_ = os.Rename(backup, outputFile)
 			return fmt.Errorf("failed to marshal SealedSecret to YAML: %w", err)
 		}
 	}
 
 	if err := c.writeYAML(&buf, outputFile); err != nil {
-		os.Rename(backup, outputFile)
+		_ = os.Rename(backup, outputFile)
 		return err
 	}
 

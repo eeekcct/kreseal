@@ -12,7 +12,7 @@ import (
 
 func TestTempFile_CreateTempFile(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	tempFile := NewTempFile(log)
 	require.NotNil(t, tempFile)
@@ -37,7 +37,7 @@ func TestTempFile_CreateTempFile(t *testing.T) {
 
 func TestTempFile_Cleanup(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	tempFile := NewTempFile(log)
 
@@ -63,7 +63,7 @@ func TestTempFile_Cleanup(t *testing.T) {
 
 func TestTempFile_Cleanup_NonExistent(t *testing.T) {
 	log := logger.New(false)
-	defer log.Close()
+	defer func() { _ = log.Close() }()
 
 	tempFile := NewTempFile(log)
 	tempFile.Path = "/tmp/non-existent-file-12345.yaml"

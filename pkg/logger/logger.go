@@ -26,6 +26,6 @@ func New(debug bool) *Logger {
 	return &Logger{logger.Sugar()}
 }
 
-func (l *Logger) Close() {
-	l.SugaredLogger.Sync()
+func (l *Logger) Close() error {
+	return l.Sync()
 }

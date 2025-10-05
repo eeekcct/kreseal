@@ -66,7 +66,7 @@ var rootCmd = &cobra.Command{
 		}
 		defer func() {
 			tempFile.Cleanup()
-			log.Close()
+			_ = log.Close()
 		}()
 
 		// Unseal SealedSecret to temporary file
