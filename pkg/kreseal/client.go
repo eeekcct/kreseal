@@ -100,34 +100,61 @@ func (c *Client) EditFile(filePath string) error {
 
 // ResealSecret reseals a Secret file to SealedSecret with backup and restore functionality
 func (c *Client) ResealSecret(inputFile, outputFile string) error {
-	backup := outputFile + ".bak"
-
-	// Create backup of original file
-	if err := os.Rename(outputFile, backup); err != nil {
-		return fmt.Errorf("failed to create backup: %w", err)
+	// Check if outputFile exists for backup
+	var backup string
+	if _, err := os.Stat(outputFile); err == nil {
+		backup = outputFile + ".bak"
+		if err := os.Rename(outputFile, backup); err != nil {
+			return fmt.Errorf("failed to create backup: %w", err)
+		}
+		c.Logger.Debugf("Created backup: %s", backup)
 	}
 
-	c.Logger.Debugf("Created backup: %s", backup)
 	c.Logger.Debugf("Resealing %s to %s", inputFile, outputFile)
 
+	// Convert Secret to SealedSecret and write to file
+	if err := c.sealSecretFile(inputFile, outputFile); err != nil {
+		if backup != "" {
+			_ = os.Rename(backup, outputFile)
+		}
+		return err
+	}
+
+	// Remove backup on success
+	if backup != "" {
+		if err := os.Remove(backup); err != nil {
+			c.Logger.Warnf("Failed to remove backup file %s: %v", backup, err)
+		} else {
+			c.Logger.Debugf("Removed backup: %s", backup)
+		}
+	}
+
+	c.Logger.Debugf("Successfully resealed %s to %s", inputFile, outputFile)
+	return nil
+}
+
+// sealSecretFile converts a Secret file to SealedSecret and writes to output file
+func (c *Client) sealSecretFile(inputFile, outputFile string) error {
 	input, err := os.ReadFile(inputFile)
 	if err != nil {
-		_ = os.Rename(backup, outputFile)
 		return fmt.Errorf("failed to read input file: %w", err)
 	}
 
 	secrets, err := k8s.ReadSecrets(input)
 	if err != nil {
-		_ = os.Rename(backup, outputFile)
 		return fmt.Errorf("failed to read Secrets from input: %w", err)
 	}
 	if len(secrets) == 0 {
-		_ = os.Rename(backup, outputFile)
 		return fmt.Errorf("no Secrets found in input")
 	}
 
 	var buf bytes.Buffer
 	for _, secret := range secrets {
+		// Set namespace from Cert if Secret doesn't have one
+		if secret.Namespace == "" {
+			secret.Namespace = c.Cert.Namespace
+		}
+
 		label := k8s.GetEncryptionLabelFromSecret(secret)
 		secretData := secret.Data
 
@@ -136,7 +163,6 @@ func (c *Client) ResealSecret(inputFile, outputFile string) error {
 		for k, v := range secretData {
 			encData, err := c.Cert.Encrypt(v, label)
 			if err != nil {
-				_ = os.Rename(backup, outputFile)
 				return fmt.Errorf("failed to encrypt data for key %s: %w", k, err)
 			}
 			encryptedData[k] = encData
@@ -145,26 +171,17 @@ func (c *Client) ResealSecret(inputFile, outputFile string) error {
 		// Create new SealedSecret with updated encryptedData and template
 		ss := k8s.NewSealedSecret(encryptedData, secret)
 
-		// Write SealedSecret to outputFile
+		// Marshal SealedSecret to YAML
 		if err := c.marshalYAML(ss, &buf); err != nil {
-			_ = os.Rename(backup, outputFile)
 			return fmt.Errorf("failed to marshal SealedSecret to YAML: %w", err)
 		}
 	}
 
+	// Write to output file
 	if err := c.writeYAML(&buf, outputFile); err != nil {
-		_ = os.Rename(backup, outputFile)
 		return err
 	}
 
-	// Remove backup on success
-	if err := os.Remove(backup); err != nil {
-		c.Logger.Warnf("Failed to remove backup file %s: %v", backup, err)
-	} else {
-		c.Logger.Debugf("Removed backup: %s", backup)
-	}
-
-	c.Logger.Debugf("Successfully resealed %s to %s", inputFile, outputFile)
 	return nil
 }
 
