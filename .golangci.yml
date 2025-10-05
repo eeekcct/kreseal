@@ -1,0 +1,40 @@
+version: "2"
+linters:
+  default: all
+  disable:
+    - containedctx
+    - cyclop
+    - depguard
+    - err113
+    - exhaustive
+    - exhaustruct
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gochecknoglobals
+    - gochecknoinits
+    - gocritic
+    - godot
+    - godoclint
+    - godox
+    - gosec
+    - ireturn
+    - lll
+    - makezero
+    - mnd
+    - nlreturn
+    - noctx
+    - noinlineerr
+    - nonamedreturns
+    - paralleltest
+    - perfsprint
+    - revive
+    - tagliatelle
+    - testifylint
+    - testpackage
+    - thelper
+    - usetesting
+    - varnamelen
+    - wrapcheck
+    - wsl
+    - wsl_v5

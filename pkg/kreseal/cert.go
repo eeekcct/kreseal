@@ -21,11 +21,23 @@ type Cert struct {
 	PublicKey       *rsa.PublicKey
 	PrivateKey      *rsa.PrivateKey
 	SessionKeyBytes int
+	SecretsName     string
+	Namespace       string
 }
 
 // NewCert creates a new Cert instance
 func NewCert(name, namespace string) (*Cert, error) {
-	pubKey, privKey, err := GetCert(name, namespace)
+	ctx := context.Background()
+	client, err := k8s.NewClient(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewCertWithClient(client, name, namespace)
+}
+
+// NewCertWithClient creates a new Cert instance with a custom client (testable)
+func NewCertWithClient(client k8s.ClientInterface, name, namespace string) (*Cert, error) {
+	pubKey, privKey, err := getCertFromClient(client, name, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -33,6 +45,8 @@ func NewCert(name, namespace string) (*Cert, error) {
 		PublicKey:       pubKey,
 		PrivateKey:      privKey,
 		SessionKeyBytes: 32, // AES-256
+		SecretsName:     name,
+		Namespace:       namespace,
 	}, nil
 }
 
@@ -115,13 +129,9 @@ func (c *Cert) Encrypt(data []byte, label []byte) (string, error) {
 	return value, nil
 }
 
-// GetCert retrieves the certificate from a Kubernetes secret
-func GetCert(name, namespace string) (*rsa.PublicKey, *rsa.PrivateKey, error) {
-	ctx := context.Background()
-
-	c, err := k8s.NewClient(ctx)
-
-	secret, err := c.GetSecret(name, namespace)
+// getCertFromClient retrieves certificate using provided client (testable)
+func getCertFromClient(client k8s.ClientInterface, name, namespace string) (*rsa.PublicKey, *rsa.PrivateKey, error) {
+	secret, err := client.GetSecret(name, namespace)
 	if err != nil {
 		return nil, nil, err
 	}

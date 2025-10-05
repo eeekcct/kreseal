@@ -31,7 +31,9 @@ func (tf *TempFile) CreateTempFile(originalFile string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create temporary file: %w", err)
 	}
-	tmpFile.Close() // Close file handle immediately
+	if err := tmpFile.Close(); err != nil {
+		return fmt.Errorf("failed to close temporary file: %w", err)
+	}
 
 	tf.Path = tmpFile.Name()
 	tf.logger.Debugf("Created temporary file: %s", tf.Path)
