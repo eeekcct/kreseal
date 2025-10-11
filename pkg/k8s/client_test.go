@@ -34,12 +34,12 @@ func newTestSecret(name, namespace string, data map[string][]byte) *corev1.Secre
 	}
 }
 
-// newTestSecretWithLabels creates a test Secret with labels
-func newTestSecretWithLabels(name, namespace string, data map[string][]byte, labels map[string]string) *corev1.Secret {
+// newTestSecretWithLabels creates a test Secret with labels in the default namespace
+func newTestSecretWithLabels(name string, data map[string][]byte, labels map[string]string) *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: namespace,
+			Namespace: "default",
 			Labels:    labels,
 		},
 		Data: data,
@@ -108,15 +108,15 @@ func TestClient_GetSecret_NotFound(t *testing.T) {
 
 func TestClient_GetSecretsWithLabel(t *testing.T) {
 	// Create test secrets with different labels
-	secret1 := newTestSecretWithLabels("secret1", "default",
+	secret1 := newTestSecretWithLabels("secret1",
 		map[string][]byte{"key1": []byte("value1")},
 		map[string]string{"app": "myapp", "env": "prod"})
 
-	secret2 := newTestSecretWithLabels("secret2", "default",
+	secret2 := newTestSecretWithLabels("secret2",
 		map[string][]byte{"key2": []byte("value2")},
 		map[string]string{"app": "myapp", "env": "dev"})
 
-	secret3 := newTestSecretWithLabels("secret3", "default",
+	secret3 := newTestSecretWithLabels("secret3",
 		map[string][]byte{"key3": []byte("value3")},
 		map[string]string{"app": "other", "env": "prod"})
 
@@ -151,7 +151,7 @@ func TestClient_GetSecretsWithLabel_InvalidSelector(t *testing.T) {
 		}
 	}()
 
-	client.GetSecretsWithLabel("default", "invalid=selector=syntax")
+	_, _ = client.GetSecretsWithLabel("default", "invalid=selector=syntax")
 	t.Error("Expected panic but none occurred")
 }
 
@@ -165,13 +165,13 @@ func TestClient_GetSecretsWithLabel_APIError(t *testing.T) {
 }
 
 func TestClient_GetSecretsNameOrLabel(t *testing.T) {
-	secret1 := newTestSecretWithLabels("secret1", "default",
+	secret1 := newTestSecretWithLabels("secret1",
 		map[string][]byte{"key1": []byte("value1")},
 		map[string]string{"app": "myapp", "env": "prod"})
-	secret2 := newTestSecretWithLabels("secret2", "default",
+	secret2 := newTestSecretWithLabels("secret2",
 		map[string][]byte{"key2": []byte("value2")},
 		map[string]string{"app": "myapp", "env": "dev"})
-	secret3 := newTestSecretWithLabels("secret3", "default",
+	secret3 := newTestSecretWithLabels("secret3",
 		map[string][]byte{"key3": []byte("value3")},
 		map[string]string{"app": "other", "env": "prod"})
 
