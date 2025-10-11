@@ -77,7 +77,7 @@ tasks:
       CURRENT_BRANCH:
         sh: git branch --show-current
     preconditions:
-      - sh: 'if ("{{.CURRENT_BRANCH}}" -ne "main") { exit 1 }'
+      - sh: '[ "{{.CURRENT_BRANCH}}" != "main" ]'
         msg: "Tags must be created from the main branch. Current branch: {{.CURRENT_BRANCH}}"
       - sh: "git fetch origin main"
         msg: "Fetching latest changes from origin/main"
