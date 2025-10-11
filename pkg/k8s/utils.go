@@ -9,7 +9,7 @@ import (
 	"github.com/bitnami-labs/sealed-secrets/pkg/apis/sealedsecrets/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
@@ -18,7 +18,10 @@ const (
 )
 
 func SealedSecretKeySelector() string {
-	return fields.OneTermEqualSelector(sealedSecretKeyLabel, "active").String()
+	selector := labels.SelectorFromSet(labels.Set{
+		sealedSecretKeyLabel: "active",
+	})
+	return selector.String()
 }
 
 func NewSecret(data map[string][]byte, spec v1alpha1.SecretTemplateSpec) *corev1.Secret {

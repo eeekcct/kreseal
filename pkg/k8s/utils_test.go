@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 )
 
 func TestReadSecrets(t *testing.T) {
@@ -438,4 +439,19 @@ func TestSortSecretsByCreationTimestamp(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSealedSecretKeySelector(t *testing.T) {
+	selector := SealedSecretKeySelector()
+
+	// The selector should be a valid label selector
+	assert.NotEmpty(t, selector)
+
+	// Should return the correct label selector format
+	expected := "sealedsecrets.bitnami.com/sealed-secrets-key=active"
+	assert.Equal(t, expected, selector)
+
+	// Verify it can be parsed as a valid label selector
+	_, err := labels.Parse(selector)
+	assert.NoError(t, err, "Generated selector should be valid")
 }
