@@ -54,7 +54,7 @@ func NewCertWithClient(client k8s.ClientInterface, name, namespace string) (*Cer
 	}, nil
 }
 
-// depricated: use v1alpha1.SealedSecret.Unseal()
+// deprecated: use v1alpha1.SealedSecret.Unseal()
 func (c *Cert) Decrypt(data string, label []byte) ([]byte, error) {
 	value, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
