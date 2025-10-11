@@ -25,7 +25,7 @@ This allows you to seal secrets without kubeseal CLI.`,
 		secretFile := args[0]
 
 		// Load certificate
-		cert, err := kreseal.NewCert(secretsName, namespace)
+		cert, err := kreseal.NewCert(config.SecretsName, config.Namespace)
 		if err != nil {
 			return fmt.Errorf("failed to load certificate: %w", err)
 		}

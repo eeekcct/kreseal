@@ -85,7 +85,7 @@ This command reads a Secret file and encrypts it to a SealedSecret.
 **Global Options:**
 
 - `-s, --secrets-name`: Name of the sealed-secrets certificate secret
-- `-n, --namespace`: Namespace of the sealed-secrets certificate (default: `default`)
+- `-n, --namespace`: Namespace of the sealed-secrets certificate (default: `kube-system`)
 - `--debug`: Enable debug logging
 
 **Seal Command Options:**
@@ -104,6 +104,13 @@ kreseal --debug mysealedsecret.yaml
 # Seal a Secret to a SealedSecret
 kreseal seal secret.yaml -o sealedsecret.yaml
 ```
+
+### Configuration
+
+You can configure default values using:
+
+- Configuration file: `$HOME/.config/kreseal/config.yaml` or specify with `--config`
+- Environment variables: Use `KRESEAL_` prefix (e.g., `KRESEAL_SECRETS_NAME`, `KRESEAL_NAMESPACE`)
 
 ### Editor Configuration
 
