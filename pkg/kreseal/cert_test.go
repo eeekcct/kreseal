@@ -317,6 +317,26 @@ func (m *mockSecretClient) GetSecret(name, namespace string) (*corev1.Secret, er
 	return m.secret, nil
 }
 
+func (m *mockSecretClient) GetSecretsWithLabel(namespace, label string) ([]corev1.Secret, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.secret == nil {
+		return []corev1.Secret{}, nil // Return empty slice when no secrets
+	}
+	return []corev1.Secret{*m.secret}, nil
+}
+
+func (m *mockSecretClient) GetSecretsNameOrLabel(namespace, name, label string) ([]corev1.Secret, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	if m.secret == nil {
+		return []corev1.Secret{}, nil // Return empty slice when no secrets
+	}
+	return []corev1.Secret{*m.secret}, nil
+}
+
 func Test_getCertFromClient_Success(t *testing.T) {
 	privateKey, privKeyPEM, certPEM := generateTestCert(t)
 
@@ -344,18 +364,29 @@ func Test_getCertFromClient_Errors(t *testing.T) {
 
 	tests := []struct {
 		name          string
+		secretName    string
 		client        *mockSecretClient
 		expectedError string
 	}{
 		{
-			name: "secret not found",
+			name:       "secret not found",
+			secretName: "test-secret",
 			client: &mockSecretClient{
 				err: fmt.Errorf("secret not found"),
 			},
 			expectedError: "secret not found",
 		},
 		{
-			name: "invalid private key",
+			name:       "no secrets found - empty slice",
+			secretName: "non-existent-secret",
+			client: &mockSecretClient{
+				secret: nil, // This will return empty slice
+			},
+			expectedError: "no Secret found with name non-existent-secret",
+		},
+		{
+			name:       "invalid private key",
+			secretName: "test-secret",
 			client: &mockSecretClient{
 				secret: &corev1.Secret{
 					Data: map[string][]byte{
@@ -367,7 +398,8 @@ func Test_getCertFromClient_Errors(t *testing.T) {
 			expectedError: "failed to decode PEM block",
 		},
 		{
-			name: "invalid certificate",
+			name:       "invalid certificate",
+			secretName: "test-secret",
 			client: &mockSecretClient{
 				secret: &corev1.Secret{
 					Data: map[string][]byte{
@@ -382,7 +414,7 @@ func Test_getCertFromClient_Errors(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, _, err := getCertFromClient(tt.client, "test-secret", "default")
+			_, _, err := getCertFromClient(tt.client, tt.secretName, "default")
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.expectedError)
 		})

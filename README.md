@@ -84,7 +84,7 @@ This command reads a Secret file and encrypts it to a SealedSecret.
 
 **Global Options:**
 
-- `-s, --secrets-name`: Name of the sealed-secrets certificate secret (default: `sealed-secrets`)
+- `-s, --secrets-name`: Name of the sealed-secrets certificate secret
 - `-n, --namespace`: Namespace of the sealed-secrets certificate (default: `default`)
 - `--debug`: Enable debug logging
 
@@ -95,17 +95,14 @@ This command reads a Secret file and encrypts it to a SealedSecret.
 ### Examples
 
 ```sh
-# Edit a SealedSecret with custom certificate location
-kreseal -s my-sealed-secrets -n kube-system mysealedsecret.yaml
+# Edit a SealedSecret with
+kreseal mysealedsecret.yaml
 
 # Enable debug logging
 kreseal --debug mysealedsecret.yaml
 
 # Seal a Secret to a SealedSecret
 kreseal seal secret.yaml -o sealedsecret.yaml
-
-# Seal with custom certificate location
-kreseal seal secret.yaml -o sealedsecret.yaml -s my-sealed-secrets -n kube-system
 ```
 
 ### Editor Configuration

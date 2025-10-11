@@ -27,6 +27,7 @@ func NewClient(logger *logger.Logger, cert *Cert) *Client {
 }
 
 // UnsealSealedSecret unseals a SealedSecret to a temporary file
+// TODO: use v1alpha1.SealedSecret.Unseal()
 func (c *Client) UnsealSealedSecret(inputFile, outputFile string) error {
 	c.Logger.Debugf("Unsealing %s to %s", inputFile, outputFile)
 
@@ -99,6 +100,7 @@ func (c *Client) EditFile(filePath string) error {
 }
 
 // ResealSecret reseals a Secret file to SealedSecret with backup and restore functionality
+// TODO: use v1alpha1.NewSealedSecret()
 func (c *Client) ResealSecret(inputFile, outputFile string) error {
 	// Check if outputFile exists for backup
 	var backup string
