@@ -58,7 +58,7 @@ tasks:
       - cmd: rm -f coverage coverage.html && rm -rf dist
         platforms: [linux, darwin]
 
-  release:
+  build:
     desc: Create a release build using GoReleaser
     cmds:
       - task: test
@@ -68,6 +68,26 @@ tasks:
     cmds:
       - go run main.go seal testdata/secret.yaml -o testdata/sealedsecret.yaml
       - go run main.go testdata/sealedsecret.yaml
+
+  tag-release:
+    desc: "Create and push a new version tag (use: task tag-release VERSION=v1.0.0)"
+    requires:
+      vars: [VERSION]
+    vars:
+      CURRENT_BRANCH:
+        sh: git branch --show-current
+    preconditions:
+      - sh: '[ "{{.CURRENT_BRANCH}}" = "main" ]'
+        msg: "Tags must be created from the main branch. Current branch: {{.CURRENT_BRANCH}}"
+      - sh: "git fetch origin main"
+        msg: "Fetching latest changes from origin/main"
+      - sh: "git diff --quiet HEAD origin/main"
+        msg: "Local main branch is not up to date with origin/main. Please pull latest changes."
+    cmds:
+      - 'echo "Creating and pushing tag {{.VERSION}} from main branch"'
+      - git tag {{.VERSION}}
+      - git push origin {{.VERSION}}
+      - 'echo "Tag {{.VERSION}} created and pushed successfully"'
 
 vars:
   EXE: '{{if eq OS "windows"}}.exe{{end}}'

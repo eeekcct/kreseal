@@ -28,11 +28,17 @@ import (
 	"github.com/eeekcct/kreseal/pkg/kreseal"
 	"github.com/eeekcct/kreseal/pkg/logger"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-var debug bool
-var secretsName string
-var namespace string
+type Config struct {
+	Debug       bool
+	SecretsName string
+	Namespace   string
+}
+
+var cfgFile string
+var config Config
 var log *logger.Logger
 
 // rootCmd represents the base command when called without any subcommands
@@ -42,7 +48,7 @@ var rootCmd = &cobra.Command{
 	Long:  `kreseal makes editing SealedSecrets easier by unsealing, editing, and resealing automatically.`,
 	Args:  cobra.MaximumNArgs(1),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		log = logger.New(debug) // Initialize logger
+		log = logger.New(config.Debug)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if len(args) == 0 {
@@ -51,7 +57,7 @@ var rootCmd = &cobra.Command{
 		orgFile := args[0]
 
 		// Load certificate
-		cert, err := kreseal.NewCert(secretsName, namespace)
+		cert, err := kreseal.NewCert(config.SecretsName, config.Namespace)
 		if err != nil {
 			return fmt.Errorf("failed to load certificate: %w", err)
 		}
@@ -99,15 +105,58 @@ func Execute() {
 }
 
 func init() {
+	cobra.OnInitialize(initConfig)
+
 	// Here you will define your flags and configuration settings.
 	// Cobra supports persistent flags, which, if defined here,
 	// will be global for your application.
 
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.kreseal.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.config/kreseal/config.yaml)")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
-	rootCmd.PersistentFlags().StringVarP(&secretsName, "secrets-name", "s", "", "Name of the secrets")
-	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "Namespace of the secrets")
+	rootCmd.PersistentFlags().Bool("debug", false, "Enable debug logging")
+	rootCmd.PersistentFlags().StringP("secrets-name", "s", "", "Name of the secrets")
+	rootCmd.PersistentFlags().StringP("namespace", "n", "kube-system", "Namespace of the secrets")
+
+	// Bind viper to cobra flags
+	_ = viper.BindPFlag("debug", rootCmd.PersistentFlags().Lookup("debug"))
+	_ = viper.BindPFlag("secrets-name", rootCmd.PersistentFlags().Lookup("secrets-name"))
+	_ = viper.BindPFlag("namespace", rootCmd.PersistentFlags().Lookup("namespace"))
+}
+
+// initConfig reads in config file and ENV variables.
+func initConfig() {
+	if cfgFile != "" {
+		// Use config file from the flag.
+		viper.SetConfigFile(cfgFile)
+	} else {
+		// Find home directory.
+		home, err := os.UserHomeDir()
+		cobra.CheckErr(err)
+
+		// Search config in $HOME/.config/kreseal/config.yaml
+		viper.AddConfigPath(home + "/.config/kreseal")
+		viper.AddConfigPath(".")
+		viper.SetConfigType("yaml")
+		viper.SetConfigName("config")
+	}
+
+	// Read in environment variables that match
+	viper.SetEnvPrefix("KRESEAL")
+	viper.AutomaticEnv()
+
+	// If a config file is found, read it in.
+	_ = viper.ReadInConfig()
+
+	// Unmarshal config into struct
+	if err := viper.Unmarshal(&config); err != nil {
+		fmt.Fprintf(os.Stderr, "failed to parse config: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Set default namespace if not configured anywhere
+	if config.Namespace == "" {
+		config.Namespace = "kube-system"
+	}
 }
