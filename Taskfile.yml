@@ -1,0 +1,73 @@
+version: "3"
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  test:
+    desc: Run tests
+    cmds:
+      - go test -v ./...
+
+  test-short:
+    desc: Run tests (short)
+    cmds:
+      - go test -short ./...
+
+  coverage:
+    desc: Generate test coverage report
+    cmds:
+      - go test -coverprofile=coverage ./...
+      - go tool cover -func=coverage
+
+  coverage-html:
+    desc: Generate HTML test coverage report
+    cmds:
+      - go test -coverprofile=coverage ./...
+      - go tool cover -html=coverage -o coverage.html
+      - task: open-coverage
+
+  open-coverage:
+    desc: Open coverage report in browser
+    cmds:
+      - cmd: powershell -c "if (Test-Path coverage.html) { Invoke-Item coverage.html } else { Write-Error 'coverage.html not found' }"
+        platforms: [windows]
+      - cmd: open coverage.html
+        platforms: [darwin]
+      - cmd: xdg-open coverage.html
+        platforms: [linux]
+
+  lint:
+    desc: Run golangci-lint
+    cmds:
+      - golangci-lint run
+
+  fmt:
+    desc: Format code
+    cmds:
+      - go fmt ./...
+      - goimports -w .
+
+  clean:
+    desc: Clean build artifacts and coverage files
+    cmds:
+      - cmd: Remove-Item -Force coverage, coverage.html, dist -Recurse -ErrorAction SilentlyContinue
+        platforms: [windows]
+      - cmd: rm -f coverage coverage.html && rm -rf dist
+        platforms: [linux, darwin]
+
+  release:
+    desc: Create a release build using GoReleaser
+    cmds:
+      - task: test
+      - goreleaser build --snapshot --clean
+
+  reseal:
+    cmds:
+      - go run main.go seal testdata/secret.yaml -o testdata/sealedsecret.yaml
+      - go run main.go testdata/sealedsecret.yaml
+
+vars:
+  EXE: '{{if eq OS "windows"}}.exe{{end}}'

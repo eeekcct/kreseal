@@ -108,6 +108,6 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.PersistentFlags().BoolVar(&debug, "debug", false, "Enable debug logging")
-	rootCmd.PersistentFlags().StringVarP(&secretsName, "secrets-name", "s", "sealed-secrets", "Name of the secrets")
+	rootCmd.PersistentFlags().StringVarP(&secretsName, "secrets-name", "s", "", "Name of the secrets")
 	rootCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "default", "Namespace of the secrets")
 }

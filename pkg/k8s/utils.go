@@ -4,12 +4,25 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"sort"
 
 	"github.com/bitnami-labs/sealed-secrets/pkg/apis/sealedsecrets/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
+
+const (
+	sealedSecretKeyLabel = "sealedsecrets.bitnami.com/sealed-secrets-key"
+)
+
+func SealedSecretKeySelector() string {
+	selector := labels.SelectorFromSet(labels.Set{
+		sealedSecretKeyLabel: "active",
+	})
+	return selector.String()
+}
 
 func NewSecret(data map[string][]byte, spec v1alpha1.SecretTemplateSpec) *corev1.Secret {
 	secret := &corev1.Secret{
@@ -103,4 +116,8 @@ func ReadSealedSecrets(raw []byte) ([]*v1alpha1.SealedSecret, error) {
 		sealedSecrets = append(sealedSecrets, &sealedSecret)
 	}
 	return sealedSecrets, nil
+}
+
+func SortSecretsByCreationTimestamp(secrets []corev1.Secret) {
+	sort.Sort(v1alpha1.ByCreationTimestamp(secrets))
 }

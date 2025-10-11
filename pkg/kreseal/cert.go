@@ -17,6 +17,10 @@ import (
 	"github.com/eeekcct/kreseal/pkg/k8s"
 )
 
+const (
+	sessionKeyBytes = 32 // AES-256
+)
+
 type Cert struct {
 	PublicKey       *rsa.PublicKey
 	PrivateKey      *rsa.PrivateKey
@@ -44,12 +48,13 @@ func NewCertWithClient(client k8s.ClientInterface, name, namespace string) (*Cer
 	return &Cert{
 		PublicKey:       pubKey,
 		PrivateKey:      privKey,
-		SessionKeyBytes: 32, // AES-256
+		SessionKeyBytes: sessionKeyBytes,
 		SecretsName:     name,
 		Namespace:       namespace,
 	}, nil
 }
 
+// deprecated: use v1alpha1.SealedSecret.Unseal()
 func (c *Cert) Decrypt(data string, label []byte) ([]byte, error) {
 	value, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
@@ -93,6 +98,7 @@ func (c *Cert) Decrypt(data string, label []byte) ([]byte, error) {
 	return decryptedData, nil
 }
 
+// deprecated: use v1alpha1.NewSealedSecret()
 func (c *Cert) Encrypt(data []byte, label []byte) (string, error) {
 	sessionKey := make([]byte, c.SessionKeyBytes)
 	rnd := rand.Reader
@@ -131,10 +137,16 @@ func (c *Cert) Encrypt(data []byte, label []byte) (string, error) {
 
 // getCertFromClient retrieves certificate using provided client (testable)
 func getCertFromClient(client k8s.ClientInterface, name, namespace string) (*rsa.PublicKey, *rsa.PrivateKey, error) {
-	secret, err := client.GetSecret(name, namespace)
+	secrets, err := client.GetSecretsNameOrLabel(namespace, name, k8s.SealedSecretKeySelector())
 	if err != nil {
 		return nil, nil, err
 	}
+	if len(secrets) == 0 {
+		return nil, nil, fmt.Errorf("no Secret found with name %s in namespace %s", name, namespace)
+	}
+	// Sort secrets by creation timestamp to get the latest one
+	k8s.SortSecretsByCreationTimestamp(secrets)
+	secret := &secrets[len(secrets)-1] // Get the most recently created secret
 
 	privKey, err := parsePrivateKey(secret.Data["tls.key"])
 	if err != nil {
