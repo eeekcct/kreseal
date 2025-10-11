@@ -95,7 +95,7 @@ This command reads a Secret file and encrypts it to a SealedSecret.
 ### Examples
 
 ```sh
-# Edit a SealedSecret with
+# Edit a SealedSecret with kreseal
 kreseal mysealedsecret.yaml
 
 # Enable debug logging

@@ -6,6 +6,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -55,6 +56,13 @@ func (c *Client) GetSecret(name, namespace string) (*corev1.Secret, error) {
 }
 
 func (c *Client) GetSecretsWithLabel(namespace, label string) ([]corev1.Secret, error) {
+	// Validate the label selector syntax
+	if label != "" {
+		if _, err := labels.Parse(label); err != nil {
+			return nil, fmt.Errorf("invalid selector syntax: %w", err)
+		}
+	}
+
 	secretList, err := c.ClientSet.CoreV1().Secrets(namespace).List(c.ctx, metav1.ListOptions{
 		LabelSelector: label,
 	})

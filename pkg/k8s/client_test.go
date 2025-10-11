@@ -145,14 +145,28 @@ func TestClient_GetSecretsWithLabel_NotFound(t *testing.T) {
 func TestClient_GetSecretsWithLabel_InvalidSelector(t *testing.T) {
 	client := newFakeClient()
 
-	defer func() {
-		if r := recover(); r != nil {
-			assert.Contains(t, r.(error).Error(), "invalid selector")
-		}
-	}()
+	// Test with invalid selector syntax
+	secrets, err := client.GetSecretsWithLabel("default", "invalid=selector=syntax")
 
-	_, _ = client.GetSecretsWithLabel("default", "invalid=selector=syntax")
-	t.Error("Expected panic but none occurred")
+	// Should return an error, not panic
+	assert.Error(t, err)
+	assert.Nil(t, secrets)
+	assert.Contains(t, err.Error(), "invalid selector")
+}
+
+func TestClient_GetSecretsWithLabel_EmptySelector(t *testing.T) {
+	secret1 := newTestSecretWithLabels("secret1",
+		map[string][]byte{"key1": []byte("value1")},
+		map[string]string{"app": "myapp"})
+
+	client := newFakeClient(secret1)
+
+	// Empty label selector should return all secrets in namespace
+	secrets, err := client.GetSecretsWithLabel("default", "")
+
+	assert.NoError(t, err)
+	assert.Len(t, secrets, 1)
+	assert.Equal(t, "secret1", secrets[0].Name)
 }
 
 func TestClient_GetSecretsWithLabel_APIError(t *testing.T) {
