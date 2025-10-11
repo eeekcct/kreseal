@@ -98,7 +98,7 @@ func (c *Cert) Decrypt(data string, label []byte) ([]byte, error) {
 	return decryptedData, nil
 }
 
-// depricated: use v1alpha1.NewSealedSecret()
+// deprecated: use v1alpha1.NewSealedSecret()
 func (c *Cert) Encrypt(data []byte, label []byte) (string, error) {
 	sessionKey := make([]byte, c.SessionKeyBytes)
 	rnd := rand.Reader
