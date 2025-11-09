@@ -18,40 +18,6 @@ go install github.com/eeekcct/kreseal@latest
 
 Download pre-built binaries from the [releases page](https://github.com/eeekcct/kreseal/releases).
 
-#### Windows
-
-```powershell
-# Download the latest release
-Invoke-WebRequest -Uri "https://github.com/eeekcct/kreseal/releases/latest/download/kreseal_Windows_x86_64.zip" -OutFile kreseal.zip
-
-# Extract
-Expand-Archive kreseal.zip -DestinationPath .
-
-# Move to a directory in your PATH (e.g., $HOME\go\bin)
-# Make sure $HOME\go\bin is in your PATH
-Move-Item kreseal.exe $HOME\go\bin\
-```
-
-#### Linux
-
-```sh
-# Download and install the latest release
-curl -L https://github.com/eeekcct/kreseal/releases/latest/download/kreseal_Linux_x86_64.tar.gz | tar xz
-sudo mv kreseal /usr/local/bin/
-```
-
-#### macOS
-
-```sh
-# Download and install the latest release
-curl -L https://github.com/eeekcct/kreseal/releases/latest/download/kreseal_Darwin_x86_64.tar.gz | tar xz
-sudo mv kreseal /usr/local/bin/
-
-# For Apple Silicon (M1/M2)
-curl -L https://github.com/eeekcct/kreseal/releases/latest/download/kreseal_Darwin_arm64.tar.gz | tar xz
-sudo mv kreseal /usr/local/bin/
-```
-
 ## Prerequisites
 
 - Kubernetes cluster with [Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) controller installed
@@ -125,7 +91,7 @@ Default editor is `vi` if `EDITOR` is not set.
 
 ## License
 
-This project is licensed under the MIT License - see the `LICENSE` file for details.
+[MIT](./LICENSE)
 
 ## Contributing
 
