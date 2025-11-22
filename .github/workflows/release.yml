@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    uses: eeekcct/goreleaser-golang-workflow/.github/workflows/release.yml@5065f0f9d063637caf5440cfb03ff06258d96c59
+    uses: eeekcct/goreleaser-golang-workflow/.github/workflows/release.yml@d38f9f1df6cef10ae1dc9626b07fe544eb250cc1 # v0.2.0
     permissions:
       contents: write
       id-token: write
