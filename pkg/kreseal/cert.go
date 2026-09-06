@@ -122,7 +122,7 @@ func (c *Cert) Encrypt(data []byte, label []byte) (string, error) {
 	}
 
 	// Prepend the length of the RSA-encrypted session key
-	rsaLen := make([]byte, 2)
+	rsaLen := make([]byte, 2, 2+len(encryptedData))
 	binary.BigEndian.PutUint16(rsaLen, uint16(len(encryptedData)))
 	ciphertext := append(rsaLen, encryptedData...)
 
