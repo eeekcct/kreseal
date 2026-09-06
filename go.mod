@@ -3,7 +3,7 @@ module github.com/eeekcct/kreseal
 go 1.27.1
 
 require (
-	github.com/bitnami-labs/sealed-secrets v0.34.0
+	github.com/bitnami-labs/sealed-secrets v0.39.1
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
