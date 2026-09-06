@@ -16,7 +16,7 @@ import (
 
 // newFakeClient creates a new Client with a fake ClientSet for testing
 func newFakeClient(objects ...runtime.Object) *Client {
-	fakeClientset := fake.NewSimpleClientset(objects...)
+	fakeClientset := fake.NewClientset(objects...)
 	return &Client{
 		ctx:       context.Background(),
 		ClientSet: fakeClientset,
@@ -48,7 +48,7 @@ func newTestSecretWithLabels(name string, data map[string][]byte, labels map[str
 
 // newFakeClientWithError creates a fake client that returns errors for specific operations
 func newFakeClientWithError(errorOnList bool) *Client {
-	fakeClientset := fake.NewSimpleClientset()
+	fakeClientset := fake.NewClientset()
 
 	if errorOnList {
 		fakeClientset.PrependReactor("list", "secrets", func(action ktesting.Action) (handled bool, ret runtime.Object, err error) {
