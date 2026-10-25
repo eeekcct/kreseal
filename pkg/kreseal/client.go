@@ -159,6 +159,13 @@ func (c *Client) sealSecretFile(inputFile, outputFile string) error {
 
 		label := k8s.GetEncryptionLabelFromSecret(secret)
 		secretData := secret.Data
+		if secretData == nil {
+			secretData = make(map[string][]byte)
+		}
+		// Kubernetes gives stringData precedence over data for duplicate keys.
+		for key, value := range secret.StringData {
+			secretData[key] = []byte(value)
+		}
 
 		// Convert Secret Data to EncryptedData
 		encryptedData := make(map[string]string)
