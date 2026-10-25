@@ -36,6 +36,22 @@ kreseal path/to/sealedsecret.yaml
 
 This command unseals the SealedSecret, opens it in your editor, and reseals it after editing.
 
+### Create a new Secret in your editor
+
+```sh
+kreseal create my-secret.yaml
+```
+
+Opens `$EDITOR` (or `vi`) with a plain Secret template, an empty name,
+`namespace: default`, `type: Opaque`, and `stringData: {}`. Edit the name,
+namespace, and values, then save and exit to write an encrypted SealedSecret
+file. Nothing is applied to the cluster. Leaving the template unchanged cancels
+creation, and existing output files are never overwritten.
+
+The target namespace is edited in the YAML; `--namespace` / `-n` continues to
+select the namespace containing the controller keys. `stringData` values take
+precedence over duplicate keys in `data`, as they do in Kubernetes.
+
 ### Seal Command
 
 Convert a plain Kubernetes Secret to a SealedSecret:
