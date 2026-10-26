@@ -2,7 +2,9 @@ package kreseal
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -97,6 +99,42 @@ func (c *Client) EditFile(filePath string) error {
 
 	c.Logger.Debugf("Successfully edited %s", filePath)
 	return nil
+}
+
+// EditAndResealSecret reseals only when the editor changes the plaintext bytes.
+func (c *Client) EditAndResealSecret(inputFile, outputFile string) error {
+	original, err := secretFileDigest(inputFile)
+	if err != nil {
+		return fmt.Errorf("failed to read Secret before editing: %w", err)
+	}
+	if err := c.EditFile(inputFile); err != nil {
+		return err
+	}
+	edited, err := secretFileDigest(inputFile)
+	if err != nil {
+		return fmt.Errorf("failed to read Secret after editing: %w", err)
+	}
+	if original == edited {
+		c.Logger.Debugf("Secret unchanged; leaving %s untouched", outputFile)
+		return nil
+	}
+	return c.ResealSecret(inputFile, outputFile)
+}
+
+// secretFileDigest hashes raw file bytes without retaining the plaintext contents.
+func secretFileDigest(path string) ([sha256.Size]byte, error) {
+	var digest [sha256.Size]byte
+	file, err := os.Open(path)
+	if err != nil {
+		return digest, err
+	}
+	defer func() { _ = file.Close() }()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return digest, err
+	}
+	copy(digest[:], hash.Sum(nil))
+	return digest, nil
 }
 
 // ResealSecret reseals a Secret file to SealedSecret with backup and restore functionality
