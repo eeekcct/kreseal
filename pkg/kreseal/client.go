@@ -99,6 +99,26 @@ func (c *Client) EditFile(filePath string) error {
 	return nil
 }
 
+// EditAndResealSecret reseals only when the editor changes the plaintext bytes.
+func (c *Client) EditAndResealSecret(inputFile, outputFile string) error {
+	original, err := os.ReadFile(inputFile)
+	if err != nil {
+		return fmt.Errorf("failed to read Secret before editing: %w", err)
+	}
+	if err := c.EditFile(inputFile); err != nil {
+		return err
+	}
+	edited, err := os.ReadFile(inputFile)
+	if err != nil {
+		return fmt.Errorf("failed to read Secret after editing: %w", err)
+	}
+	if bytes.Equal(original, edited) {
+		c.Logger.Debugf("Secret unchanged; leaving %s untouched", outputFile)
+		return nil
+	}
+	return c.ResealSecret(inputFile, outputFile)
+}
+
 // ResealSecret reseals a Secret file to SealedSecret with backup and restore functionality
 // TODO: use v1alpha1.NewSealedSecret()
 func (c *Client) ResealSecret(inputFile, outputFile string) error {

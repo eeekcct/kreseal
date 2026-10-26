@@ -80,18 +80,8 @@ var rootCmd = &cobra.Command{
 			return err
 		}
 
-		// Edit the temporary file
-		if err := client.EditFile(tempFile.Path); err != nil {
-			return err
-		}
-
-		// Reseal the edited Secret
-		if err := client.ResealSecret(tempFile.Path, orgFile); err != nil {
-			return err
-		}
-
-		log.Debugf("Successfully resealed and saved to %s", orgFile)
-		return nil
+		// Leave the original SealedSecret untouched when the editor makes no changes.
+		return client.EditAndResealSecret(tempFile.Path, orgFile)
 	},
 }
 

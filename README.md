@@ -34,7 +34,7 @@ Edit a SealedSecret file:
 kreseal path/to/sealedsecret.yaml
 ```
 
-This command unseals the SealedSecret, opens it in your editor, and reseals it after editing.
+This command unseals the SealedSecret, opens it in your editor, and reseals it only if the edited contents change. Leaving the contents unchanged preserves the original file exactly.
 
 ### Create a new Secret in your editor
 
