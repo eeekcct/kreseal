@@ -2,6 +2,7 @@ package kreseal
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,6 +35,14 @@ func TestEditEditorHelper(t *testing.T) {
 			os.Exit(11)
 		}
 		os.Exit(0)
+	case "directory":
+		if err := os.Remove(path); err != nil {
+			os.Exit(13)
+		}
+		if err := os.Mkdir(path, 0700); err != nil {
+			os.Exit(14)
+		}
+		os.Exit(0)
 	}
 	// Also test an editor that rewrites identical contents when saving.
 	if err := os.WriteFile(path, input, 0600); err != nil {
@@ -58,6 +67,7 @@ func TestClient_EditAndResealSecret(t *testing.T) {
 		{mode: "formatting", value: "synthetic-old", changed: true},
 		{mode: "failure", wantError: "failed to edit", value: "synthetic-old"},
 		{mode: "removed", wantError: "failed to read Secret after editing", value: "synthetic-old"},
+		{mode: "directory", wantError: "failed to read Secret after editing", value: "synthetic-old"},
 	} {
 		t.Run(tt.mode, func(t *testing.T) {
 			dir := t.TempDir()
@@ -111,6 +121,36 @@ func TestClient_EditAndResealSecret(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.value, string(value))
 		})
+	}
+}
+
+func TestSecretFileDigest(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "plain.yaml")
+	for _, input := range [][]byte{nil, []byte("synthetic"), []byte("synthetic\n")} {
+		require.NoError(t, os.WriteFile(path, input, 0600))
+		digest, err := secretFileDigest(path)
+		require.NoError(t, err)
+		assert.Equal(t, sha256.Sum256(input), digest)
+	}
+	// Exercise multiple streaming reads without a large plaintext allocation in the test.
+	file, err := os.Create(path)
+	require.NoError(t, err)
+	chunk := bytes.Repeat([]byte("synthetic-data\n"), 4096)
+	expected := sha256.New()
+	for range 128 {
+		_, err := file.Write(chunk)
+		require.NoError(t, err)
+		_, err = expected.Write(chunk)
+		require.NoError(t, err)
+	}
+	require.NoError(t, file.Close())
+	digest, err := secretFileDigest(path)
+	require.NoError(t, err)
+	assert.Equal(t, expected.Sum(nil), digest[:])
+	for _, unreadable := range []string{filepath.Join(dir, "missing"), dir} {
+		_, err := secretFileDigest(unreadable)
+		require.Error(t, err, "open/read failures must not produce a usable digest")
 	}
 }
 
